@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import FirebaseStorage
 
 class SelectPictureViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate{
 
@@ -56,24 +57,73 @@ class SelectPictureViewController: UIViewController, UIImagePickerControllerDele
     
     @IBAction func NextTapped(_ sender: Any) {
         
+        //DELETE this for production
+        messageTextField.text = "test"
+        imageAdded = true
+        
         if let message = messageTextField.text {
             
             if imageAdded && message != "" {
-                //segue to next view controller
+                //Upload the image
+                
+                //Make a folder in storage
+               let imagesFolder = Storage.storage().reference().child("images")
+                
+                
+                if let image = imageView.image {
+                    
+                    if let imageData = UIImageJPEGRepresentation(image, 0.1) {
+                    
+                        let imageRef = imagesFolder.child("\(NSUUID().uuidString).jpg")
+                    
+                        imageRef.putData(imageData, metadata: nil) { (metadata, error) in
+                            if let error = error{
+                                self.presentAlert(alert: error.localizedDescription)
+                            }else{
+                                imageRef.downloadURL(completion: { (url, error1) in
+                                    if let error1 = error1 {
+                                        self.presentAlert(alert: error1.localizedDescription)
+                                    }else{
+                                        let downloadURL = url?.absoluteString
+                                        self.performSegue(withIdentifier: "selectedRecieverSegue", sender: downloadURL)
+                                    }
+                                })
+                            }
+                        }
+                    }//End imageData
+                }
+               
             }else {
                 //We are missing something
-                let alertVC = UIAlertController(title: "Error", message: "You must provide an image and a message for your snap.", preferredStyle: .alert)
-                
-                let okAction = UIAlertAction(title: "OK", style: .default) { (action) in
-                    alertVC.dismiss(animated: true, completion: nil)
-                }
-                
-                alertVC.addAction(okAction)
-                present(alertVC, animated: true, completion: nil)
-                
+                presentAlert(alert: "You must provide an image and a message for your snap.")
 
             }
         }
       
     }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if let downloadURL = sender as? String {
+            
+            if let selectVC = segue.destination as? SelectRecipientTableViewController {
+                selectVC.downloadURL = downloadURL
+            }
+        }
+    }
+    
+    
+    
+    func presentAlert(alert: String){
+        
+        let alertVC = UIAlertController(title: "Error", message: alert, preferredStyle: .alert)
+        
+        let okAction = UIAlertAction(title: "OK", style: .default) { (action) in
+            alertVC.dismiss(animated: true, completion: nil)
+        }
+        
+        alertVC.addAction(okAction)
+        present(alertVC, animated: true, completion: nil)
+        
+    }
+
 }
