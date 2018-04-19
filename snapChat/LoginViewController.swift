@@ -11,6 +11,7 @@
 
 import UIKit
 import FirebaseAuth
+import FirebaseDatabase
 
 class LoginViewController: UIViewController {
 
@@ -41,8 +42,10 @@ class LoginViewController: UIViewController {
                             //print(error.localizedDescription)
                             self.presentAlert(alert: error.localizedDescription)
                         }else {
-                            print("Sign Up was successful")
-                            self.performSegue(withIdentifier: "moveToSnaps", sender: nil)
+                            if let user = user {
+                                Database.database().reference().child("users").child(user.uid).child("email").setValue(user.email)
+                                self.performSegue(withIdentifier: "moveToSnaps", sender: nil)
+                            }
                         }
                     }
                     
